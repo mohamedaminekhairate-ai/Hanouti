@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Hanoti</string>
+    <string name="title_activity_main">Hanoti</string>
+    <string name="package_name">com.hanoti.app</string>
+    <string name="custom_url_scheme">com.hanoti.app</string>
+</resources>

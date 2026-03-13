@@ -1,71 +1,74 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+import { db, initDb } from './db';
+
+// Initialize the database and seed metadata if empty
+initDb();
 
 export const apiService = {
   // Products
   getProducts: async () => {
-    const response = await fetch(`${API_URL}/products`);
-    return response.json();
+    return db.products.toArray();
   },
   createProduct: async (productData) => {
-    const response = await fetch(`${API_URL}/products`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(productData),
-    });
-    return response.json();
+    const id = await db.products.add(productData);
+    return { ...productData, id };
   },
 
   // Categories
   getCategories: async () => {
-    const response = await fetch(`${API_URL}/categories`);
-    return response.json();
+    return db.categories.toArray();
   },
 
   // Suppliers
   getSuppliers: async () => {
-    const response = await fetch(`${API_URL}/suppliers`);
-    return response.json();
+    return db.suppliers.toArray();
   },
 
   // Customers
   getCustomers: async () => {
-    const response = await fetch(`${API_URL}/customers`);
-    return response.json();
+    return db.customers.toArray();
   },
   createCustomer: async (customerData) => {
-    const response = await fetch(`${API_URL}/customers`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(customerData),
-    });
-    return response.json();
+    const id = await db.customers.add(customerData);
+    return { ...customerData, id };
   },
 
   // Deliveries
   getDeliveries: async () => {
-    const response = await fetch(`${API_URL}/deliveries`);
-    return response.json();
+    return db.deliveries.toArray();
   },
   createDelivery: async (deliveryData) => {
-    const response = await fetch(`${API_URL}/deliveries`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(deliveryData),
-    });
-    return response.json();
+    const id = await db.deliveries.add(deliveryData);
+    // Update stock
+    const product = await db.products.get(deliveryData.product_id);
+    if (product) {
+      await db.products.update(product.id, {
+        stock: (parseFloat(product.stock) || 0) + parseFloat(deliveryData.quantity)
+      });
+    }
+    return { ...deliveryData, id };
   },
 
   // Losses
   getLosses: async () => {
-    const response = await fetch(`${API_URL}/losses`);
-    return response.json();
+    // In local mode, we join with product manually if needed, 
+    // but the UI expects nested product prop in some places.
+    const losses = await db.losses.toArray();
+    const records = await Promise.all(losses.map(async (l) => {
+      const product = await db.products.get(l.product_id);
+      return { ...l, product };
+    }));
+    return records;
   },
   createLoss: async (lossData) => {
-    const response = await fetch(`${API_URL}/losses`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(lossData),
-    });
-    return response.json();
+    const id = await db.losses.add(lossData);
+    // Update stock
+    const product = await db.products.get(lossData.product_id);
+    if (product) {
+      await db.products.update(product.id, {
+        stock: (parseFloat(product.stock) || 0) - parseFloat(lossData.quantity)
+      });
+    }
+    const result = { ...lossData, id, product };
+    return result;
   },
 };

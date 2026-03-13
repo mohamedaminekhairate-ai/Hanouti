@@ -1,4 +1,4 @@
-// Mock data for the grocery shop management app
+export const categories = ['ألبان', 'مشروبات', 'خبز', 'معلبات', 'حبوب', 'تنظيف', 'أخرى'];
 
 export const suppliers = [
   { id: 1, name: 'سنطرال', logo: '🏭' },
