@@ -6,56 +6,53 @@ export const db = new Dexie('HanotiDB');
 db.version(1).stores({
   categories: '++id, name',
   suppliers: '++id, name',
-  products: '++id, name, categoryId, supplierId, stock',
+  products: '++id, name, category_id, supplier_id, stock',
   customers: '++id, name, debt',
   deliveries: '++id, product_id, supplier_id, date',
   losses: '++id, product_id, date'
 });
 
-// Initial seed
-db.on('populate', () => {
-  db.categories.bulkAdd(mockCategories);
-  db.suppliers.bulkAdd(mockSuppliers);
-  db.products.bulkAdd(mockProducts.map(p => ({
-    ...p,
-    categoryId: p.category, // map if needed
-    buy_price: p.buyPrice,
-    sell_price: p.sellPrice
-  })));
-});
-
 export const initDb = async () => {
+  await db.open();
+  
   if (await db.products.count() === 0) {
     console.log('Seeding local database...');
     
-    // Categories
-    await db.categories.bulkAdd(mockCategories.map(c => ({ name: c })));
+    // 1. Categories
+    const categoryNames = mockCategories; // ['ألبان', ...]
+    const categoryIds = {};
+    for (const name of categoryNames) {
+      const id = await db.categories.add({ name });
+      categoryIds[name] = id;
+    }
     
-    // Suppliers
-    await db.suppliers.bulkAdd(mockSuppliers.map(s => ({ 
-      id: s.id, 
-      name: s.name, 
-      image: s.logo || '📦' 
-    })));
+    // 2. Suppliers
+    const supplierIds = {};
+    for (const s of mockSuppliers) {
+      const id = await db.suppliers.add({ 
+        name: s.name, 
+        image: s.logo || '📦' 
+      });
+      supplierIds[s.id] = id; // mapping original mock ID to new ID
+    }
     
-    // Products
+    // 3. Products
     await db.products.bulkAdd(mockProducts.map(p => ({
       name: p.name,
       image: p.image,
       stock: p.stock,
       buy_price: p.buyPrice,
       sell_price: p.sellPrice,
-      category: p.category,
+      category_id: categoryIds[p.category] || null,
+      supplier_id: supplierIds[p.supplierId] || null,
       unit: p.unit || 'pcs'
     })));
 
-    // Customers
-    if (await db.customers.count() === 0) {
-      await db.customers.bulkAdd([
-        { name: 'سي محمد', debt: 150 },
-        { name: 'لالة فاطمة', debt: 75.5 },
-        { name: 'با أحمد', debt: 0 }
-      ]);
-    }
+    // 4. Customers
+    await db.customers.bulkAdd([
+      { name: 'سي محمد', debt: 150 },
+      { name: 'لالة فاطمة', debt: 75.5 },
+      { name: 'با أحمد', debt: 0 }
+    ]);
   }
 };

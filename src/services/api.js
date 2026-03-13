@@ -1,7 +1,6 @@
 import { db, initDb } from './db';
 
-// Initialize the database and seed metadata if empty
-initDb();
+// Database initialized in App.jsx
 
 export const apiService = {
   // Products
